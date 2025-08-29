@@ -1,0 +1,7 @@
+[project]
+name = "testabib"
+version = "0.1.0"
+dependencies = ["typer[all]", "rich"]
+
+[project.scripts]
+testabib = "testabib:app"

@@ -1,0 +1,24 @@
+TestaBibID ::= Serie, Nutzer, Objekt [ "-" Suffix ]
+
+Serie = 4*ziffer 	
+	(* Fortlaufende Zahl, typisch JAHR*)
+Nutzer = letter_gross 	
+	(* Eineindeutige Nutzerkennung [A-Z].
+	Zugeordnet durch Administrator.
+	*)
+Objekt = 3*ziffer	
+	(* Objektnummer in Serie *)
+Suffix = ziffer { ziffer | letter_klein }
+	(* Objektnummern-Suffix für Einschübe:
+		2025Z001
+		2025Z001-1
+		2025Z002
+		...
+	Für Einschübe in Einschübe Ziffern-Lettern-Wechsel:
+		2025Z001-1
+		2025Z001-1a
+		2025Z001-1a1
+		2025Z001-1b
+		2025Z001-2
+		... 
+	*)
