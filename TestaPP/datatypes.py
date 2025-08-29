@@ -1,17 +1,20 @@
 from dataclasses import dataclass
 import os
 import pandas as pd
-from pandas import DataFrame
+from pandas import DataFrame, Series
 import pathlib
 import re
 from rich import print
 from string import ascii_uppercase
-from typing import Iterable, Union, Literal, LiteralString, Pattern
+from typing import Any, Iterable, Union, Literal, LiteralString, Pattern
 
 PathStr = Union[str, pathlib.Path, os.PathLike]
 
 class Letter(str):
+    """Letter ensures string of length 1. Use 'case' slot for checking upper/lower case letter. 'self.upper()' and 'self.lower()' methods will create new Letter instance, if not in correct case.
+    """
     __slots__ = ("case", "body")
+
     def __new__(cls, token) -> "Letter":
         if len(str(token)) != 1:
             print("""[red bold]:: FEHLER[/red bold]
@@ -96,44 +99,158 @@ class Letter(str):
             raise RuntimeError()
         return l
 
-@dataclass
-class Signature:
-    id: Letter
-    in_use: bool
-    is_next: bool = False
-    user: str|Literal['ANON']|None = None
-    role: Literal['user', 'admin'] = 'user'
+    @classmethod
+    def safe_convert(cls, token) -> "Letter|None":
+        try:
+            return cls.__new__(cls, token)
+        except:
+            return None
 
-@dataclass
-class UserRegData:
-    signatures: list[Letter]
-    status: Literal['besetzt', 'reserveriert', 'frei']
-    user_status: Literal['user', 'admin']
-    user: str|None = None
-    route: str|None = None
+class SignatureEntry:
+    def __init__(
+        self,
+        letter: str|Letter,
+        status: Literal['besetzt', 'reserviert', 'frei'] = 'frei',
+        user: str | Literal['ANON'] | None = None,
+        user_status: Literal['user', 'admin'] | None = None,
+        route: str|list[str] = []
+    ):
+        self._letter: Letter = Letter(letter.upper())
+        self._status: Literal['besetzt', 'reserviert', 'frei'] = status
+        self._user: str | None = user
+        self._user_status: Literal['admin', 'user'] | None = user_status
+        self._route: list[str] = []
+
+        if isinstance(route, str):
+            self._route = [e.strip() for e in route.split(";")]
+        else:
+            self._route = [e for e in route]
+
+    @property
+    def status(self) -> str:
+        return self._status
+
+
+    def isfree(self) -> bool:
+        return self.status == 'frei'
+
+    def isused(self) -> bool:
+        return self.status != 'frei'
+
+    def __bool__(self) -> bool:
+        if self.status != 'frei':
+            return True
+        return False
+
+    @property
+    def user(self) -> str|None:
+        return self._user
+
+    @property
+    def letter(self) -> Letter:
+        return self._letter
+
+    @property
+    def route(self) -> str|list[str]|None:
+        if len(self._route) <= 0:
+            return
+        elif len(self._route) == 1:
+            return self._route[0]
+        return self._route
+
+    @user.setter
+    def user(self, name: str):
+        if name.lower() in ['kusanowsky', 'klaus kusanowsky', 'kk']:
+            self._user_status = 'admin'
+            self._user = name
+            self._status = 'besetzt'
+        elif not self._user or str(self._user).upper().startswith("ANON"):
+            self._user = name
+            self._status = 'besetzt'
+            self._user_status = 'user'
+        else:
+            print(f"""[red][bold]:: VERBOTEN[/bold][/red]
+    -> Konnte [green]{name}[/green] nicht anwenden.
+    -> Nutzer für Signatur [yellow]{self.letter}[/yellow] ist bereits gesetzt.
+        >> [green]{self.user}[/green]
+    [red]-> Sitzende Nutzer können nicht überschrieben werden.[/red]
+        => Ausnahme [green]ANON[/green]""")
 
 class UserRegistry:
-    _seq: list = [l for l in reversed(list(ascii_uppercase))]
+    """Holds dataframes for accredited users."""
 
+    _seq: list = [Letter(l) for l in reversed(list(ascii_uppercase))]
     _names_de: list[str] = ['SIGNATUR', 'STATUS', 'NUTZER', 'NUTZERSTATUS', 'ROUTE']
     _names_en: list[str] = ['signature', 'status', 'user', 'user_status', 'route']
 
-    def __init__(self, reg: PathStr):
-        self._path: pathlib.Path = pathlib.Path(reg)
+    def __init__(self, reg: PathStr|DataFrame):
+        if isinstance(reg, DataFrame):
+            self.df = reg.copy()
+        else:
+            self.df = pd.read_csv(reg)
 
-        df: DataFrame = pd.read_csv(self.path)
-        df.columns = UserRegistry._names_de
+        self.df.columns = UserRegistry._names_en          # Rename columns to english lower case names
+
+        # Set DataTypes
+        self.df = self._set_col_asletter(self.df.copy())
         for col in ['status', 'user_status']:
-            df[col] = df[col].astype('category')
+            self.df[col] = self.df[col].astype('category')
 
-        self._free: DataFrame = df.loc[df.status == 'frei', 'signature']
-        self._reserved: DataFrame = df.loc[df.status == 'reserviert', 'signature']
-        self._occupied: DataFrame
+        self._reg: dict[str, SignatureEntry] = {}
+        for i in range(self.df.shape[0]):
+            status = self.df.iloc[i].status
+            user = self.df.loc[i].user
+            if not user and not self.df.loc[i].status == 'frei':
+                user = "ANON"
+        
+            entry = SignatureEntry(
+                letter = self.df.iloc[i].signature,
+                status = status,
+                user = user,
+                user_status = self.df.iloc[i].user_status,
+            )
+            self._reg[str(entry.letter)] = entry
 
+        for l in self._seq:
+            if not str(l) in self._reg.keys():
+                self._reg[str(l)] = SignatureEntry(letter = l, status = 'frei')
+
+    def _get_single_routes(self, arg: str) -> list[str]:
+        if not arg:
+            return []
+        if arg.startswith("\""):
+            arg = arg[1:]
+        if arg.endswith("\""):
+            arg = arg[:-2]
+
+        for sep in [';', ',']:
+            if sep in arg:
+                return [elem.strip() for elem in arg.split(sep)]
+        return [arg]
+
+    def _set_col_asletter(self, data: DataFrame) -> DataFrame:
+        df = data.copy()
+        df.signature = df['signature'].apply(Letter.safe_convert)
+        df = df.dropna(subset = ['signature'])
+        return df
 
     @property
-    def path(self) -> pathlib.Path:
-        return self._path
+    def data(self) -> dict[str, SignatureEntry]:
+        return self._reg
+
+    def __list__(self) -> list[SignatureEntry]:
+        return [e for e in self._reg.values()]
+
+
+    def asdict(self) -> dict:
+        return {k: v for k, v in self._reg.items()}
+
+    def isfree(self, arg: Letter|str) -> bool:
+        if not isinstance(arg, Letter):
+            arg = Letter(arg.upper())
+        elif not arg.isupper():
+            arg = arg.upper()
+
 
         
 
