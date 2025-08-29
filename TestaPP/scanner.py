@@ -4,7 +4,7 @@ from string import ascii_uppercase, digits, ascii_lowercase
 import sys
 from typing import Pattern
 
-from datatypes import TestaBibID
+from datatypes import TestaBibID, Route
 
 PTTRN: dict[str, Pattern] = {
     'valid.0': re.compile(r"^(\d{4})([A-Z]{1})(\d{3})$"),
@@ -82,3 +82,5 @@ def scan_key(token: str) -> tuple[bool, str|TestaBibID]:
         return False, token 
 
     return True, TestaBibID(serial, user, item, suffix)
+
+def route(arg: str) -> tuple[bool, Route]

@@ -1,7 +1,11 @@
 [project]
-name = "testabib"
+name = "testapp"
 version = "0.1.0"
-dependencies = ["typer[all]", "rich"]
+dependencies = [
+	"typer[all]>=0.16.1",
+	"rich>=14.1.0",
+	"toml>=0.10.1"
+]
 
 [project.scripts]
-testabib = "testabib:app"
+testabib = "__main__:app"

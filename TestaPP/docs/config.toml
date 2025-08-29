@@ -1,0 +1,6 @@
+[registries]
+user = 'docs/NUTZER.CSV'
+routes = 'docs/ROUTEN.LOG'
+
+[logs]
+contributions = 'docs/contrib.log'

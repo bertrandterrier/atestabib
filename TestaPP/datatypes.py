@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 import os
-import pandas
+import pandas as pd
+from pandas import DataFrame
 import pathlib
 import re
 from rich import print
+from string import ascii_uppercase
 from typing import Iterable, Union, Literal, LiteralString, Pattern
 
 PathStr = Union[str, pathlib.Path, os.PathLike]
@@ -102,6 +104,38 @@ class Signature:
     user: str|Literal['ANON']|None = None
     role: Literal['user', 'admin'] = 'user'
 
+@dataclass
+class UserRegData:
+    signatures: list[Letter]
+    status: Literal['besetzt', 'reserveriert', 'frei']
+    user_status: Literal['user', 'admin']
+    user: str|None = None
+    route: str|None = None
+
+class UserRegistry:
+    _seq: list = [l for l in reversed(list(ascii_uppercase))]
+
+    _names_de: list[str] = ['SIGNATUR', 'STATUS', 'NUTZER', 'NUTZERSTATUS', 'ROUTE']
+    _names_en: list[str] = ['signature', 'status', 'user', 'user_status', 'route']
+
+    def __init__(self, reg: PathStr):
+        self._path: pathlib.Path = pathlib.Path(reg)
+
+        df: DataFrame = pd.read_csv(self.path)
+        df.columns = UserRegistry._names_de
+        for col in ['status', 'user_status']:
+            df[col] = df[col].astype('category')
+
+        self._free: DataFrame = df.loc[df.status == 'frei', 'signature']
+        self._reserved: DataFrame = df.loc[df.status == 'reserviert', 'signature']
+        self._occupied: DataFrame
+
+
+    @property
+    def path(self) -> pathlib.Path:
+        return self._path
+
+        
 
 class TestaBibID:
     def __init__(self, sequence: str|int, user: str, item: str|int, suffix: str|int|None):
@@ -256,8 +290,8 @@ class ItemData:
         id: TestaBibID,
         name: str,
         year: int|str|None = None,
-        author: str|None = None,
-        editor: str|None = None,
+        author: str|list[str] = [],
+        editor: str|list[str] = [],
         title: str|None = None,
         shorthand: str|None = None,
         subtitle: str|None = None,
@@ -266,18 +300,71 @@ class ItemData:
         isbn10: int|Iterable[int]|str|None = None,
     ):
         self.__id: TestaBibID = id
-        self._ed: str|None = None
-        self._ttl: str|None = title or name
+        self._ttl: tuple[str, str|None]= (title or name, subtitle)
         self._shorthand: str|None = shorthand
         self._year: str|int|None = year
-        self._author: str|None = author
+        self._ed: list[str] = []
+        self._author: list[str] = []
         self._isbn: int = -1
         self._isbn10: int = -1
         self._isbn13: int = -1
 
+        self.author = author
+        self.editor = editor
+
         for num, _type in zip([isbn, isbn10, isbn13], [None, 10, 13]):
             if num:
                 self.scan_isbn(num, _type)
+
+    @property
+    def subtitle(self) -> str|None:
+        return self._ttl[1]
+
+    @property
+    def title(self) -> str:
+        return self._ttl[0]
+
+    @title.setter
+    def title(self, other: tuple[str, str]|str):
+        if isinstance(other, tuple):
+            self._ttl = other
+        else:
+            self._ttl = (other, self._ttl[1])
+
+    @subtitle.setter
+    def subtitle(self, other: str):
+        self._ttl = (self.title, other)
+
+    @property
+    def author(self) -> str|list[str]|None:
+        if len(self._author) < 1:
+            return
+        elif len(self._author) ==1:
+            return self._author[0]
+        return self._author
+
+    @author.setter
+    def author(self, other: str|list[str]):
+        if isinstance(other, str):
+            self._author.append(other)
+        else:
+            self._author += other
+
+
+    @property
+    def editor(self) -> str|list[str]|None:
+        if len(self._ed) < 1:
+            return
+        elif len(self._ed) ==1:
+            return self._ed[0]
+        return self._ed
+
+    @editor.setter
+    def editor(self, other: str|list[str]):
+        if isinstance(other, str):
+            self._ed.append(other)
+        else:
+            self._ed+= other
 
     def scan_isbn(self, isbn: str|int|Iterable[int], isbn_type: int|None = None):
         if isinstance(isbn, str):
@@ -331,11 +418,11 @@ class Route:
 class Router:
     def __init__(
         self,
-        _log: PathStr = "routes.log",
+        log: PathStr,
         _entry_pttrn: Pattern | LiteralString = r"\{([^}]*)\}\{([^}]*)\}\{([^}]*)\};{0,1}"
     ):
 
-        self._path: pathlib.Path = pathlib.Path(_log)
+        self._path: pathlib.Path = pathlib.Path(log)
         self._pttrn: Pattern|LiteralString = _entry_pttrn
         self._routes: list[Route] = []
 

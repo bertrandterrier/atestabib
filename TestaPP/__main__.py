@@ -1,6 +1,5 @@
 from rich import print
 import typer
-from typing import Optional
 from typing_extensions import Annotated
 
 import scanner
@@ -10,7 +9,7 @@ app = typer.Typer()
 
 @app.command("scan")
 def scan(key: Annotated[str, typer.Argument(help = "Signatur (Alfred Testa Bibliotheks Objekt-Signatur)")]):
-    rslt = scanner.scan(key)
+    rslt = scanner.scan_key(key)
     success: bool = rslt[0]
 
     if not success:
@@ -31,10 +30,6 @@ def scan(key: Annotated[str, typer.Argument(help = "Signatur (Alfred Testa Bibli
         for l in token.table():
             print("\t "+l[0]+l[1])
         print()
-
-@app.command("what")
-def what():
-    print("what")
 
 if __name__ == "__main__":
     app()
