@@ -6,20 +6,29 @@ from typing import Any
 from datatypes import PathStr, Router
 
 ROOT: Path = Path(__file__).parent.parent
+print(ROOT)
+
+@dataclass
+class RegPathsData:
+    user: PathStr
+    routes: PathStr
 
 @dataclass
 class ConfigData:
-    registries: dict[str, PathStr]
-    logs: dict[str, PathStr]
+    regs: RegPathsData
 
-
-with open('docs/config.py', 'r') as f:
+with open('docs/config.toml', 'r') as f:
     _data: dict[str, Any] = toml.load(f)
 
-g_config = ConfigData(**_data)
+g_config = ConfigData(
+    regs = RegPathsData(
+        user = ROOT.joinpath(_data['registries']['user']),
+        routes = ROOT.joinpath(_data['registries']['routes']),
+    )
+)
 
 for reg in ['user', 'routes']:
-    if not g_config.registries.get(reg):
+    if not hasattr(g_config.regs, reg):
         raise FileNotFoundError(f"Missing registry path for \"{reg}\".")
 
-g_router = Router(g_config.registries['routes'])
+g_router = Router(g_config.regs.routes)

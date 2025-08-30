@@ -6,7 +6,7 @@ import pathlib
 import re
 from rich import print
 from string import ascii_uppercase
-from typing import Any, Iterable, Union, Literal, LiteralString, Pattern
+from typing import Iterable, Iterator, Union, Literal, LiteralString, Pattern
 
 PathStr = Union[str, pathlib.Path, os.PathLike]
 
@@ -24,7 +24,7 @@ class Letter(str):
         inst = super().__new__(cls, str(token))
         inst.body = str(token)
 
-        if inst.upper() == inst:
+        if token.upper() == token:
             inst.case = "upper"
         else:
             inst.case = "lower"
@@ -106,7 +106,7 @@ class Letter(str):
         except:
             return None
 
-class SignatureEntry:
+class UserKeyEntry:
     def __init__(
         self,
         letter: str|Letter,
@@ -171,7 +171,7 @@ class SignatureEntry:
         else:
             print(f"""[red][bold]:: VERBOTEN[/bold][/red]
     -> Konnte [green]{name}[/green] nicht anwenden.
-    -> Nutzer für Signatur [yellow]{self.letter}[/yellow] ist bereits gesetzt.
+    -> Nutzer für Signatur [bright_yellow]{self.letter}[/bright_yellow] ist bereits gesetzt.
         >> [green]{self.user}[/green]
     [red]-> Sitzende Nutzer können nicht überschrieben werden.[/red]
         => Ausnahme [green]ANON[/green]""")
@@ -196,14 +196,14 @@ class UserRegistry:
         for col in ['status', 'user_status']:
             self.df[col] = self.df[col].astype('category')
 
-        self._reg: dict[str, SignatureEntry] = {}
+        self._reg: dict[str, UserKeyEntry] = {}
         for i in range(self.df.shape[0]):
             status = self.df.iloc[i].status
             user = self.df.loc[i].user
             if not user and not self.df.loc[i].status == 'frei':
                 user = "ANON"
         
-            entry = SignatureEntry(
+            entry = UserKeyEntry(
                 letter = self.df.iloc[i].signature,
                 status = status,
                 user = user,
@@ -213,7 +213,7 @@ class UserRegistry:
 
         for l in self._seq:
             if not str(l) in self._reg.keys():
-                self._reg[str(l)] = SignatureEntry(letter = l, status = 'frei')
+                self._reg[str(l)] = UserKeyEntry(letter = l, status = 'frei')
 
     def _get_single_routes(self, arg: str) -> list[str]:
         if not arg:
@@ -235,21 +235,15 @@ class UserRegistry:
         return df
 
     @property
-    def data(self) -> dict[str, SignatureEntry]:
+    def data(self) -> dict[str, UserKeyEntry]:
         return self._reg
 
-    def __list__(self) -> list[SignatureEntry]:
+    def __list__(self) -> list[UserKeyEntry]:
         return [e for e in self._reg.values()]
 
 
     def asdict(self) -> dict:
         return {k: v for k, v in self._reg.items()}
-
-    def isfree(self, arg: Letter|str) -> bool:
-        if not isinstance(arg, Letter):
-            arg = Letter(arg.upper())
-        elif not arg.isupper():
-            arg = arg.upper()
 
 
         
@@ -325,10 +319,10 @@ class TestaBibID:
     def format(
         self,
         colors: dict[str, str] = {
-            'sequence': 'yellow',
-            'user': 'red',
-            'item': 'green',
-            'suffix': 'cyan'
+            'sequence': 'deep_pink1',
+            'user': 'bright_yellow',
+            'item': 'deep_pink1',
+            'suffix': 'green'
             }, instant: bool = False) -> str:
         clrs: dict[str, tuple[str, str]] = {k: (f"[{v}]", f"[/{v}]") for k, v in colors.items()}
 
@@ -347,10 +341,10 @@ class TestaBibID:
     def table(
         self,
         colors: dict[str, str] = {
-            'sequence': 'yellow',
-            'user': 'red',
-            'item': 'green',
-            'suffix': 'cyan'
+            'sequence': 'deep_pink1',
+            'user': 'bright_yellow',
+            'item': 'deep_pink1',
+            'suffix': 'sea_green3'
         },
         names: dict[str, str] = {
             'sequence': 'Serie',
@@ -368,7 +362,7 @@ class TestaBibID:
                 name_len = len(v) + 1
         pnames: dict[str, str] = {}
         for k, v in names.items():
-            v = f"[{colors[k]} italic]" + v + f"[/{colors[k]} italic]" + (name_len - len(v))*" " + ":: "
+            v = v + (name_len - len(v))*" " + ":: "
             pnames[k] = v
 
         seq = f"{clrs['sequence'][0]}{self.sequence}{clrs['sequence'][1]}"
@@ -536,76 +530,66 @@ class Router:
     def __init__(
         self,
         log: PathStr,
-        _entry_pttrn: Pattern | LiteralString = r"\{([^}]*)\}\{([^}]*)\}\{([^}]*)\};{0,1}"
+        _entry_pttrn: Pattern | LiteralString = r"^([^;]+);*$",
+        _field_pttrn: Pattern | LiteralString = r"\{([^}]+)\}"
     ):
+        self._pttrn: dict[Literal['field', 'entry'], LiteralString|Pattern] = {
+            'entry': _entry_pttrn,
+            'field': _field_pttrn
+        }
+        self._routes: list[dict[str, str|list[str]]] = []
 
-        self._path: pathlib.Path = pathlib.Path(log)
-        self._pttrn: Pattern|LiteralString = _entry_pttrn
-        self._routes: list[Route] = []
+        with open(log, 'r') as f:
+            raw = f.read()
+        for entry in self.pattern('entry').findall(raw):
+            if not entry:
+                continue
+            match = self.pattern('field').findall(entry)
+
+            if len(match) >= 2:
+                self._routes.append({
+                    'short': match[0],
+                    'names': Router.split_routes(match[1]),
+                })
+                if len(match) >= 3:
+                    self._routes[-1]['user'] = match[2]
+            elif len(match) == 1:
+                print(f"""[orange][bold]:: WARNUNG[/bold][/orange]
+    -> min. [magenta]2[/magenta] Fehler erwartet. Fand [red]1[/red].
+    -> Lasse Kürzel leer...""")
+                self._routes.append({ 'names': Router.split_routes(match[1]) })
+            else:
+                print(f"""[orange]:: WARNUNG[/orange]
+    -> Eintrag ohne Felder.""")
+                print(f"\t >{entry}")
+
+    @classmethod
+    def split_routes(cls, route) -> list[str]:
+        # TODO: UNFINISHED
+        return []
 
     @property
-    def routes(self) -> list[Route]:
+    def routes(self) -> list[dict]:
         return self._routes
 
-    def add_raw_entries(self, arg: str):
-        entries = []
-        for short, name, user in self.pttrn.findall(arg):
-            if short and name:
-                entries += [(short, name, user)]
-        self.add_entries(*entries)
-
-    def add_entries(self, *args: tuple[str, str, str]):
-        for arg in args:
-            if not arg[2]:
-                user = "ANON"
-            else:
-                user = arg[2]
-            entry = Route(
-                name = arg[0],
-                short = arg[1],
-                user = user
-            )
-            self._routes.append(entry)
-        
-    @property
-    def pttrn(self) -> Pattern:
-        var = self._pttrn
-        if not isinstance(var, Pattern):
-            var = re.compile(var)
-        return var
-
-    @property
-    def namelog(self) -> dict[str, dict]:
-        result: dict[str, dict] = {}
-        for r in self.routes:
-            result[r.name] = {'short': r.short, 'user': r.user}
+    def __list__(self) -> list[str]:
+        result: list[str] = []
+        for entry in self.routes:
+            if isinstance(entry.get('names', ""), list):
+                if len(entry['names']) <= 0:
+                    continue
+                result.append(entry['names'][0])
+            elif isinstance(entry, str):
+                result.append(entry)
         return result
 
-    @property
-    def shorthandlog(self) -> dict[str, dict]:
-        result: dict[str, dict] = {}
-        for r in self.routes:
-            result[r.short] = {'name': r.name, 'user': r.user}
-        return result
+    def __iter__(self) -> Iterator:
+        for e in self.__list__():
+            yield e
 
-    def find_short(self, shorthand: str) -> Route|None:
-        for r in self.routes:
-            if shorthand == r.short:
-                return r
-        return None
+    def pattern(self, which: Literal['field', 'entry']) -> Pattern:
+        pttrn = self._pttrn[which]
+        if not isinstance(pttrn, Pattern):
+            return re.compile(pttrn)
+        return pttrn
 
-    def find_name(self, name: str, strict: bool = False) -> Route|None:
-        for r in self.routes:
-            if r.name == name:
-                return r
-        if not strict:
-            for r in self.routes:
-                if r.name.replace(" ", "").lower() == name.lower().replace(" ", ""):
-                    return r
-        return
-
-    def find(self, arg: str, strict: bool = False) -> Route|None:
-        var = self.find_short(arg)
-        if not var:
-            var = self.find_name(arg, strict)
-        return var

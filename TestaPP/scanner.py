@@ -82,5 +82,3 @@ def scan_key(token: str) -> tuple[bool, str|TestaBibID]:
         return False, token 
 
     return True, TestaBibID(serial, user, item, suffix)
-
-def route(arg: str) -> tuple[bool, Route]
