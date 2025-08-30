@@ -3,7 +3,7 @@ from pathlib import Path
 import toml
 from typing import Any
 
-from datatypes import PathStr, Router
+from datatypes import PathStr, RouteReg
 
 ROOT: Path = Path(__file__).parent.parent
 print(ROOT)
@@ -31,4 +31,4 @@ for reg in ['user', 'routes']:
     if not hasattr(g_config.regs, reg):
         raise FileNotFoundError(f"Missing registry path for \"{reg}\".")
 
-g_router = Router(g_config.regs.routes)
+g_router = RouteReg(g_config.regs.routes)

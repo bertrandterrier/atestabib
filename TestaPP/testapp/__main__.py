@@ -3,15 +3,14 @@ import typer
 from typing import Optional
 from typing_extensions import Annotated
 
-from config import g_router
-from datatypes import TestaBibID
-from utils import syn
-import scanner
+import testapp as ta
+from testapp import g_router
+from testapp.data.datatypes import TestaBibID
 
 app = typer.Typer()
 
 def scan_key(key: str):
-    rslt = scanner.scan_key(key)
+    rslt = ta.fn.scanner.scan_key(key)
     success: bool = rslt[0]
 
     if not success:
@@ -38,9 +37,8 @@ _auto_scan_opts = [ 'Signatur', 'Route' ]
 def _auto_scan_arg(ctx: typer.Context, args: list[str], incomplete: str):
     if len(args) < 1:
         return []
-    if syn(args[0]).startswith('route'):
+    if ta.fn.syn(args[0]).startswith('route'):
         return list(g_router)
-
 
 @app.command("scan")
 def scan(
@@ -53,7 +51,7 @@ def scan(
         autocompletion = _auto_scan_arg,
     )] = None,
 ):
-    token = syn(token)
+    token = ta.fn.syn(token)
 
     if not args:
         raise RuntimeError("Mode help not yet implemented.")

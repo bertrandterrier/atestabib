@@ -524,9 +524,10 @@ class ItemData:
 class Route:
     name: str
     short: str
+    other: list[str] = []
     user: str|None = None
 
-class Router:
+class RouteReg:
     def __init__(
         self,
         log: PathStr,
@@ -537,7 +538,7 @@ class Router:
             'entry': _entry_pttrn,
             'field': _field_pttrn
         }
-        self._routes: list[dict[str, str|list[str]]] = []
+        self._routes: list[Route] = []
 
         with open(log, 'r') as f:
             raw = f.read()
@@ -547,45 +548,52 @@ class Router:
             match = self.pattern('field').findall(entry)
 
             if len(match) >= 2:
-                self._routes.append({
-                    'short': match[0],
-                    'names': Router.split_routes(match[1]),
-                })
+                name, names = RouteReg.split_routes(match[1])
                 if len(match) >= 3:
-                    self._routes[-1]['user'] = match[2]
-            elif len(match) == 1:
-                print(f"""[orange][bold]:: WARNUNG[/bold][/orange]
-    -> min. [magenta]2[/magenta] Fehler erwartet. Fand [red]1[/red].
-    -> Lasse Kürzel leer...""")
-                self._routes.append({ 'names': Router.split_routes(match[1]) })
+                    self._routes.append(
+                        Route(name, match[0], names, match[2])
+                    )
+                else:
+                    self._routes.append(
+                        Route(name, match[0], names)
+                    )
             else:
-                print(f"""[orange]:: WARNUNG[/orange]
-    -> Eintrag ohne Felder.""")
-                print(f"\t >{entry}")
+                print(f"""[red][bold]:: FEHLER[/bold]
+    -> Syntaxfehler[/red]
+    -> Min. []""")
+
 
     @classmethod
-    def split_routes(cls, route) -> list[str]:
-        # TODO: UNFINISHED
-        return []
+    def split_routes(cls, route) -> tuple[str, list[str]]:
+        result: list[str] = []
+        if "\"" in route:
+            for r in re.findall(r'"[^"]+?"', route):
+                result.append(r)
+        elif ";" in route:
+            for r in re.findall(r"[^ ][^;]+", route):
+                result.append(r)
+        elif " " in route:
+            for r in re.findall(r"[^ ]+", route):
+                result.append(r)
+        if len(result) <= 0:
+            return route, []
+        elif len(result) == 1:
+            return result[0], []
+        else:
+            return result[0], result[1:]
 
     @property
     def routes(self) -> list[dict]:
         return self._routes
 
-    def __list__(self) -> list[str]:
-        result: list[str] = []
-        for entry in self.routes:
-            if isinstance(entry.get('names', ""), list):
-                if len(entry['names']) <= 0:
-                    continue
-                result.append(entry['names'][0])
-            elif isinstance(entry, str):
-                result.append(entry)
-        return result
-
     def __iter__(self) -> Iterator:
-        for e in self.__list__():
-            yield e
+        for r in self.routes:
+            yield r
+
+    def get(self, arg: str) -> Route|None:
+        for route in self._routes:
+            if route['short']
+
 
     def pattern(self, which: Literal['field', 'entry']) -> Pattern:
         pttrn = self._pttrn[which]
@@ -593,3 +601,8 @@ class Router:
             return re.compile(pttrn)
         return pttrn
 
+@dataclass
+class LocAddr:
+    route: Route
+    number: int
+    number_suffix: str|None = None

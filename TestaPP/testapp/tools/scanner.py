@@ -4,7 +4,8 @@ from string import ascii_uppercase, digits, ascii_lowercase
 import sys
 from typing import Pattern
 
-from datatypes import TestaBibID, Route
+from testapp.data.datatypes import LocAddr, TestaBibID, Route, RouteReg
+from testapp.data.config import g_router
 
 PTTRN: dict[str, Pattern] = {
     'valid.0': re.compile(r"^(\d{4})([A-Z]{1})(\d{3})$"),
@@ -16,6 +17,14 @@ PTTRN: dict[str, Pattern] = {
 }
 
 def scan_key(token: str) -> tuple[bool, str|TestaBibID]:
+    """Scans a token for an item key (\"Objektschlüssel\").
+
+    Returns:
+        bool    
+            If token was identified as item key.
+        str|TestabibID
+            If succes: the ID object, else: the token itself.
+    """
     key = token.replace(" ", "")
     suffix = ""
     if "-" in key:
@@ -82,3 +91,23 @@ def scan_key(token: str) -> tuple[bool, str|TestaBibID]:
         return False, token 
 
     return True, TestaBibID(serial, user, item, suffix)
+
+def scan_lochash(
+    token: str,
+    _router: RouteReg = g_router
+) -> bool|Route|None:
+    """Scans token for a hashtag or taglike to find address tags. \"#\" is optional. 
+    Valid characters: '#{0,1}[a-zA-Z0-9_]+'
+
+    Returns:
+        Route   :: The route.
+        False   :: Invalid
+        True    :: Valid, not registered.
+    """
+    if not token:
+        return False
+    
+    match = re.match(r"#{0,1}([a-zA-Z]+)([0-9])([0-9a-zA-Z]*)", token)
+    if not match:
+        return False
+    ref, num, suf = match
