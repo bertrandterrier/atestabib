@@ -1,8 +1,8 @@
-SIGNATUR,STATUS,NUTZER,NUTZERSTATUS,ROUTE
-A,besetzt,kk,admin,"Hocus Locus"
-B,reserviert,kk,admin,
-C,reserviert,kk,admin,
-D,reserviert,kk,admin,
+Signatur,Status,Nutzer,Nutzerstatus,Route
+A,besetzt,@atesta,admin,"Hocus Locus"
+B,reserviert,@atesta,admin,
+C,reserviert,@atesta,admin,
+D,reserviert,@atesta,admin,
 E,frei,
 F,frei,
 G,frei,
@@ -23,5 +23,5 @@ U,frei,
 V,frei,
 W,frei,
 X,frei,
-Y,besetzt,sozialwelten,user,
-Z,besetzt,bertrandterrier,user,
+Y,besetzt,@sozialwelten,user,
+Z,besetzt,@bertrandterrier,user,
