@@ -1,26 +1,37 @@
 DATENBLATT ZU REGISTERN
 =======================
 
-**`NUTZER.CSV`**
+> Legende:
+> ✓, ✗, + = wahr, falsch, gewünscht/empfohlen.
+> ✓/✗ = optional o. bedingt.
 
-| Index | Name          | Pflicht | Datentyp      | Typzusatz     | Kommentar |
+# Nutzer
+> `NUTZER.CSV`
+
+| Index | Name          | Pflichtfeld | Datentyp      | Typzusatz     | Kommentar |
 |------:|:--------------|:-------:|:--------------|:--------------|:----------|
-| **0**     | *Signatur*      | 1 | `Letter(str)` | Einzelner Großbuchstabe (`self.case == "upper"`). Vergabe fix. |
-| **1**     | *Status*        | 1 | `str` | `reserviert`,`besetzt`,`frei` |
-| **2**     | *Nutzer*        | 0 | `str` | - | optional  |
-| **3**     | *Nutzerstatus*  | 0 | `str` | `"user"\|"admin"` | Administration *@atesta* |
-| **4**     | *Route*         | 0 | `str` | - | optional |
+| **0**     | *Signatur*      | ✓ | `Letter(str)` | Einzelner Großbuchstabe (`self.case == "upper"`). Vergabe fix. |
+| **1**     | *Status*        | ✗ | `str` | `reserviert`,`besetzt`,`frei` |
+| **2**     | *Nutzer*        | ✗ | `str` | - | optional  |
+| **3**     | *Nutzerstatus*  | ✗ | `str` | `"user"\|"admin"` | Administration *@atesta* |
+| **4**     | *Route*         | ✗ | `str` | - | optional |
 
 
-**`ADRESSEN.CSV`**
+# Adressen (Bücherschränke)
+> `ADRESSEN.CSV`
 
-| Index | Name | Pflicht | Typ | Datentyp      | Typzusatz     | Kommentar |
-|------:|:-----|:-------:|:----|:---------:|:--------------|:----------|
-| 0 | *Ortssignatur*  | 1 | Text | `str` | Pattern: `/#{0,1}[a-zA-Z0-9_]+/` | - |
-| 1 | *Route* | 1 | Wort | `str` | Name oder Kürzel. Komplexer *string* in `"..."` | - | 
-| 2 | *Nummer* | 1 | Nummer | `int\|str` | Zahl, alphabetische Zählung ab 2. Stelle | Routennummer |
-| 3 | *Geburt* | 0 | Datum/Jahr | `int \| float\| datetime` | Format: `YYYY-MM-DD` | Fund- oder Benennungsdatum |
-| 4 | *Entdecker* | 0 | Name | `str \| Letter` | Signatur, Handle, Name | optional | 
-| 5 | *Laienadresse* | 0 | Text | `str` | `"..."` | Adresse nach Ortsüblichkeit geschrieben |
-| 6 | *Grad:L* | 0 | geo. Grad | `int\|float` | - | Längengrad |
-| 7 | *Grad:B* | 0 | geo. Grad | `int\|float` | - | Breitengrad |
+| Index | Name | Pflicht | Typ | Datentyp | Typzusatz | Kommentar |
+|------:|:-----|:-------:|:----|:--------:|:----------|:----------|
+| 0 | **Route** | ✓ | Text | `str` | `"..."` | *Name der Route für Eintrag* |
+| 1 | **Nummer** | ✓ | Zahl | `int` | *Ziffernfolge* | *Nummer auf der Route. Aufsteigend mit Fund. Für Einschübe nutze* Nummernsuffix. |
+| 2 | **Nummernsuffix** | ✗ | Alphanumerische Zählung | `str` | RegEx: `[a-z][0-9a-z]*` | *Zählung für Einschübe. Beispiel:* `1, 1a, 1a1, 1a1a, 1a2, 1b, 2` |
+| 3 | **Land** | ✓/✗ | Name | `str` | · | *Land, Nation* |
+| 4 | **Region** | ✓/✗ | Name | `str` | · | *Bezirk unter* Land, *über* Stadt. *Wie 'Bundesland' für Land "de" oder 'Staat' für Land "us".* |
+| 5 | **PLZ** | ✓/✗ | Zahl | `int` | · | *Postleitzahl* |
+| 6 | **Stadt** | ✓/✗ | Name | `str` | · | · |
+| 7 | **Strasse** | ✓/✗ | Name/Name+Nummer | `str` | `Strasse`,`"Bla-Blup-Strasse"` | *Straße* |
+| 8 | **Laengengrad** | ✓/✗ | Grad | `int\|float` | · | *Längengrad. Mit* Breitengrad *alternativ für* Land+Stadt+Strasse. |
+| 9 | **Breitengrad** | ✓/✗ | Grad | `int\|float` | · | *Mit* Laengengrad *alternativ für* Land+Stadt+Strasse. |
+| 10 | **Datum** | + | Jahr/Datum | `datetime\|int` | `2025`, `30-08-2025` | *Datum des Funds o. der Aufnahme in die Route.* |
+| 11 | Entdecker | ✗ | Name | `str\|Letter` | · | *Name oder Signatur des Nutzers für Eintrag.* |
+| 12 | Verweise | ✗ | Name/Kürzel | `str` | `Name`/`"Name1; Name2;..."`/`"Name1" "Name2"...` | *Verweise auf andere Route. Aufzählung oder Nennung von Routenkürzel oder -name.* |

@@ -1,2 +1,2 @@
-Ortssignatur,Route,Nummer,Geburt,Entdecker,Routenverweise,Laienadresse,Grad:L,Grad:B
-#hcslcs19a,"Hocus Locus",9a,,@atesta,,,
+Route,Nummer,Nummernsuffix,Land,Region,PLZ,Stadt,Strasse,Laengengrad,Breitengrad,Datum,Entdecker,Verweise
+"Hocus Locus",9,a,de,Hessen,
