@@ -1,0 +1,23 @@
+EINTRAGSTYP::
+    META::
+        SIGNATUR::2025Z001-23a4;
+        ENTDECKT::1995-01-24T13:01:55;  // Datum für den Ersteintrag
+        GEFUNDEN::2025-08-05;           // Datum für Wieder- oder Mehrfacheintrag
+        ERSETZT::JA;                    // Nimmt "ja/nein, w/f, true/false, ⊤/⊥" für 0/1. Ansonsten Anzahl mit Zahl.
+        BEANTRAGT::5;
+        BESTELLT::4;                    // AUTOMATISCH 'BEANTRAGT - ERSETZT'. Positiv: Bestandspuffer.
+        ;;
+    OBJEKT::                            // Nimmt beliebige Felder oder leer 
+        TITEL::"The White Guard";       // -> Leere 'dict' Felder: 'OBJEKT;;'
+        AUTOR::"Bulgakov, Michael";
+        JAHR::1966;
+        ;;
+    PROFEAT;;                           // Für späteren Gebrauch: "Pro Feature"
+    AGENDA::                            //
+        ENTWÜRFE;;                      // Ungerichtete Anträge
+        BESCHWERDEN;;                   // Anträge an die Administration
+        ENTWUERFE;;                     // Gegenanträge                   
+        ;;
+    STATUS::gelöscht;                   // Einem Antrag auf Löschung wird stattgegeben. Das Werk wird bis zum Ende der Welt oder bis zum Entlöschungsantrag weiter geführt.
+    ENTLÖSCHUNGEN::4;
+    ;;

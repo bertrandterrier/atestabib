@@ -4,7 +4,7 @@ from typing import Optional
 from typing_extensions import Annotated
 
 import testapp as ta
-from testapp import g_router
+from testapp import g_admin, g_router
 from testapp.data.datatypes import TestaBibID
 
 app = typer.Typer()
@@ -32,26 +32,28 @@ def scan_key(key: str):
             print("\t "+l[0]+l[1])
         print()
 
+def scan_user(token: str):
+    return
 
-_auto_scan_opts = [ 'Signatur', 'Route' ]
+_auto_scan_opts = [ 'item', 'route', 'user' ]
 def _auto_scan_arg(ctx: typer.Context, args: list[str], incomplete: str):
     if len(args) < 1:
         return []
-    if ta.fn.syn(args[0]).startswith('route'):
+    if ta.fn.de_en(args[0], "").startswith('route'):
         return list(g_router)
 
 @app.command("scan")
 def scan(
     token: Annotated[str, typer.Argument(
         help = "[yellow]Scan-Token / Scanmodus[/yellow].",
-        autocompletion = lambda: [e for e in _auto_scan_opts],
+        autocompletion = lambda: [ta.fn.en_de(e) for e in _auto_scan_opts],
     )],
     args: Annotated[Optional[list[str]], typer.Argument(
         help = "[yellow]Token Argument[/yellow]. Argument[italic]typ[/italic] abhängig vom [yellow]Scan-Token [italic]⟨token⟩[/italic][/yellow].",
         autocompletion = _auto_scan_arg,
     )] = None,
 ):
-    token = ta.fn.syn(token)
+    token = ta.fn.de_en(token)
 
     if not args:
         raise RuntimeError("Mode help not yet implemented.")
@@ -61,9 +63,13 @@ def scan(
         args = [args]
 
     match token:
-        case 'key':
+        case 'item':
             for arg in args:
                 scan_key(arg)
+        case 'user':
+            for arg in args:
+                #scan_user(arg)
+                continue
         case 'route':
             pass
             # TODO Route scan

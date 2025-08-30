@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 SYNDICT: dict[str, list[str]] = {
     'key': ['schlüssel', 'schluessel', 'signatur', 'objektnummer', 'id'],
@@ -22,6 +22,7 @@ TRNSLDICT: dict[str, dict[str, str]] = {
         'signature': 'Signatur',
         'key': 'Schluessel',
         'id': 'Kennnummer',
+        'item': 'Objekt',
     },
 }
 for k, v in TRNSLDICT['en'].items():
@@ -29,21 +30,22 @@ for k, v in TRNSLDICT['en'].items():
 
 def transl(
     arg: str,
-    _from: Literal['de', 'en']|None = None,
-) -> str | None:
-    if _from:
-        return TRNSLDICT[_from].get(arg, None)
+    srclang: Literal['de', 'en']|None = None,
+    default = None,
+) -> str | Any:
+    if srclang:
+        return TRNSLDICT[srclang].get(arg, None)
     if arg in TRNSLDICT['de'].keys():
         return TRNSLDICT['de'][arg]
     elif arg in TRNSLDICT['en'].keys():
         return TRNSLDICT['en'][arg]
-    return
+    return default
 
-def de_en(arg: str) -> str | None:
-    return transl(arg, 'de')
+def de_en(arg: str, default = None) -> str | Any:
+    return transl(arg, 'de', default)
 
-def en_de(arg: str) -> str | None:
-    return transl(arg, 'en')
+def en_de(arg: str, default = None) -> str | Any:
+    return transl(arg, 'en', default)
 
 def syn(arg: str) -> str:
     check = arg.lower()

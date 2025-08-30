@@ -1,13 +1,14 @@
 from dataclasses import dataclass
 import os
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame
 import pathlib
 import re
 from rich import print
 from string import ascii_uppercase
-from typing import Iterable, Iterator, Union, Literal, LiteralString, Pattern
+from typing import Any, Iterable, Iterator, Union, Literal, LiteralString, Pattern, NewType
 
+CountryCode = NewType("CountryCode", str)
 PathStr = Union[str, pathlib.Path, os.PathLike]
 
 class Letter(str):
@@ -30,15 +31,35 @@ class Letter(str):
             inst.case = "lower"
         return inst
 
+    @classmethod
+    def up(cls, other: "Letter|str") -> "Letter|str":
+        if isinstance(other, Letter):
+            if other.isupper():
+                return other
+            return cls(str(other).upper())
+        if len(other) > 1:
+            return other.upper()
+        return cls(other.upper())
+
+    @classmethod
+    def low(cls, other: "Letter|str") -> "Letter|str":
+        if isinstance(other, Letter):
+            if other.islower():
+                return other
+            return cls(str(other).lower())
+        if len(other) > 1:
+            return other.lower()
+        return cls(other.lower())
+
     def upper(self) -> "Letter":
-        if self.case == 'upper':
-            return self
-        return Letter(str(self).upper())
+        if not self.isupper():
+            return Letter(str(self).upper())
+        return self
 
     def lower(self) -> "Letter":
-        if self.case == 'lower':
-            return self
-        return Letter(str(self).lower())
+        if not self.islower():
+            return Letter(str(self).lower())
+        return self
 
     def __str__(self) -> str:
         return self.body
@@ -106,18 +127,18 @@ class Letter(str):
         except:
             return None
 
-class UserKeyEntry:
+class UserData:
     def __init__(
         self,
         letter: str|Letter,
         status: Literal['besetzt', 'reserviert', 'frei'] = 'frei',
-        user: str | Literal['ANON'] | None = None,
+        name: str | Literal['ANON'] | None = None,
         user_status: Literal['user', 'admin'] | None = None,
         route: str|list[str] = []
     ):
         self._letter: Letter = Letter(letter.upper())
         self._status: Literal['besetzt', 'reserviert', 'frei'] = status
-        self._user: str | None = user
+        self._name: str | None = name 
         self._user_status: Literal['admin', 'user'] | None = user_status
         self._route: list[str] = []
 
@@ -130,7 +151,6 @@ class UserKeyEntry:
     def status(self) -> str:
         return self._status
 
-
     def isfree(self) -> bool:
         return self.status == 'frei'
 
@@ -142,9 +162,15 @@ class UserKeyEntry:
             return True
         return False
 
+    def __str__(self) -> str:
+        return self.name or "<ANON>"
+
+    def __lttr__(self) -> Letter:
+        return self.letter
+
     @property
-    def user(self) -> str|None:
-        return self._user
+    def name(self) -> str|None:
+        return self._name
 
     @property
     def letter(self) -> Letter:
@@ -176,7 +202,7 @@ class UserKeyEntry:
     [red]-> Sitzende Nutzer können nicht überschrieben werden.[/red]
         => Ausnahme [green]ANON[/green]""")
 
-class UserRegistry:
+class UserReg:
     """Holds dataframes for accredited users."""
 
     _seq: list = [Letter(l) for l in reversed(list(ascii_uppercase))]
@@ -189,44 +215,31 @@ class UserRegistry:
         else:
             self.df = pd.read_csv(reg)
 
-        self.df.columns = UserRegistry._names_en          # Rename columns to english lower case names
+        self.df.columns = UserReg._names_en          # Rename columns to english lower case names
 
         # Set DataTypes
         self.df = self._set_col_asletter(self.df.copy())
         for col in ['status', 'user_status']:
             self.df[col] = self.df[col].astype('category')
 
-        self._reg: dict[str, UserKeyEntry] = {}
+        self._reg: dict[Letter, UserData] = {}
         for i in range(self.df.shape[0]):
             status = self.df.iloc[i].status
             user = self.df.loc[i].user
             if not user and not self.df.loc[i].status == 'frei':
                 user = "ANON"
         
-            entry = UserKeyEntry(
+            entry = UserData(
                 letter = self.df.iloc[i].signature,
                 status = status,
-                user = user,
+                name = user,
                 user_status = self.df.iloc[i].user_status,
             )
-            self._reg[str(entry.letter)] = entry
+            self._reg[entry.letter] = entry
 
         for l in self._seq:
             if not str(l) in self._reg.keys():
-                self._reg[str(l)] = UserKeyEntry(letter = l, status = 'frei')
-
-    def _get_single_routes(self, arg: str) -> list[str]:
-        if not arg:
-            return []
-        if arg.startswith("\""):
-            arg = arg[1:]
-        if arg.endswith("\""):
-            arg = arg[:-2]
-
-        for sep in [';', ',']:
-            if sep in arg:
-                return [elem.strip() for elem in arg.split(sep)]
-        return [arg]
+                self._reg[l] = UserData(letter = l, status = 'frei')
 
     def _set_col_asletter(self, data: DataFrame) -> DataFrame:
         df = data.copy()
@@ -234,17 +247,36 @@ class UserRegistry:
         df = df.dropna(subset = ['signature'])
         return df
 
+    def __getattribute__(self, name: str) -> UserData:
+        if name.upper() not in [str(l) for l in self._seq]:
+            raise AttributeError(f"Unknwon attribute {name}")
+        try:
+            l = Letter(name.upper())
+            return self.data[l]
+        except:
+            raise AttributeError()
+
     @property
-    def data(self) -> dict[str, UserKeyEntry]:
+    def data(self) -> dict[Letter, UserData]:
         return self._reg
 
-    def __list__(self) -> list[UserKeyEntry]:
-        return [e for e in self._reg.values()]
+    def __iter__(self) -> Iterator:
+        for usr in self.data.values():
+            yield(usr)
 
+    def get(self, arg: str|Letter, default: Any = None) -> UserData|Any:
+        if not isinstance(arg, Letter) and len(arg) == 1:
+            try:
+                arg = Letter(arg.upper())
+            except:
+                pass
+        if isinstance(arg, Letter):
+            return self.data[arg.upper()]
 
-    def asdict(self) -> dict:
-        return {k: v for k, v in self._reg.items()}
-
+        for usr in self.data.values():
+            if (usr.name or "ANON").lower() == arg.lower():
+                return usr
+        return default
 
         
 
@@ -521,11 +553,120 @@ class ItemData:
         return self.__id
 
 @dataclass
-class Route:
-    name: str
-    short: str
-    other: list[str] = []
-    user: str|None = None
+class AddrData:
+    country: str|CountryCode
+    city: str
+    street: str
+    region: str|None = None
+    postcode: int = -1
+
+class BookCase:
+    def __init__(
+        self,
+        num: int|float|str|tuple[int|str, int],
+        loc0: AddrData|dict|tuple[float, float],
+        loc1: AddrData|dict|tuple[float, float]|None = None,
+    ):
+        self._num: int = -1
+        self._num_suf: str|None = None
+        self._addr: AddrData|None = None
+        self._geo: tuple[float, float]|None = None
+
+        if isinstance(num, int):
+            self._num = num
+        elif isinstance(num, float):
+            parts = str(num).split(".", 1)
+            self._num = int(parts[0])
+            self._num_suf = parts[1]
+        elif isinstance(num, str):
+            parts = re.match("([0-9]+)([a-z0-9]*)", num)
+            if not parts:
+                raise SyntaxError(f"Invalid number: {num}")
+            self._num = int(parts[0])
+            self._num_suf = parts[1]
+        elif isinstance(num, tuple):
+            self._num = int(num[0])
+            self._num_suf = str(num[1])
+
+
+        for loc in [loc0, loc1]:
+            if isinstance(loc, AddrData):
+                self._addr = loc
+            elif isinstance(loc, tuple):
+                self._geo = loc
+            elif isinstance(loc, dict):
+                if 'country' in loc.keys():
+                    self._addr = AddrData(**loc)
+                elif 'lat' in loc.keys():
+                    self._geo = (loc['lat'], loc['long'])
+                elif 'latitude' in loc.keys():
+                    self._geo = (loc['latitude'], loc['longitude'])
+                else:
+                    raise KeyError("Expected address data dictionary, or dictionary with long+lat as keys.")
+        @property
+        def addresse(self) -> AddrData|None:
+            return self._addr
+
+        @property
+        def gps(self) -> tuple[float, float]|None:
+            return self._geo
+
+        @property
+        def latitude(self) -> float|None:
+            if self.gps:
+                return self.gps[0]
+        @property
+        def longitude(self) -> float|None:
+            if not self.gps:
+                return
+            return self.gps[1]
+
+        def loc(self, prec: Literal['gps', 'address'] = 'gps') -> tuple[AddrData|tuple[float|float]]:
+            if prec == 'gps' and self.gps:
+                return self.gps
+            elif prec == 'address':
+                return self.address
+            elif self.address:
+                return self.address
+            return self.gps
+
+class RouteData:
+    def __init__(
+        self,
+        acronym: str,
+        name: str,
+        *locs: AddrData|dict,
+        user: UserData|None = None,
+        alt_names: list[str] = [],
+    ):
+        self._short: str = acronym.replace("#", "")
+        self._names: list[str] = [name] + [n for n in alt_names]
+        self._user: None|UserData = user
+        self._locs: dict[str, AddrData] = {}
+
+        for l in locs:
+            if not isinstance(l, AddrData):
+                l = AddrData(**l)
+
+    @property
+    def name(self) -> str:
+        return self._names[0]
+    @name.setter
+    def name(self, token: str|int, del_first: bool = False):
+        if isinstance(token, str):
+            new = token
+        elif not token < len(self._names):
+            return
+        else:
+            new = self._names[token]
+            del self._names[token]
+        if del_first:
+            self._names[0] = new
+        else:
+            self._names = [new] + [n for n in self._names]
+        return
+
+
 
 class RouteReg:
     def __init__(
@@ -538,7 +679,7 @@ class RouteReg:
             'entry': _entry_pttrn,
             'field': _field_pttrn
         }
-        self._routes: list[Route] = []
+        self._routes: list[RouteData] = []
 
         with open(log, 'r') as f:
             raw = f.read()
@@ -551,11 +692,11 @@ class RouteReg:
                 name, names = RouteReg.split_routes(match[1])
                 if len(match) >= 3:
                     self._routes.append(
-                        Route(name, match[0], names, match[2])
+                        RouteData(match[0], name, user = match[2], alt_names = names)
                     )
                 else:
                     self._routes.append(
-                        Route(name, match[0], names)
+                        RouteData(match[0], name, alt_names = names)
                     )
             else:
                 print(f"""[red][bold]:: FEHLER[/bold]
@@ -590,9 +731,6 @@ class RouteReg:
         for r in self.routes:
             yield r
 
-    def get(self, arg: str) -> Route|None:
-        for route in self._routes:
-            if route['short']
 
 
     def pattern(self, which: Literal['field', 'entry']) -> Pattern:
@@ -603,6 +741,6 @@ class RouteReg:
 
 @dataclass
 class LocAddr:
-    route: Route
+    route: RouteData
     number: int
     number_suffix: str|None = None

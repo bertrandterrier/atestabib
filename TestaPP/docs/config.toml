@@ -1,6 +1,13 @@
-[registries]
-user = 'docs/NUTZER.CSV'
-routes = 'docs/ROUTEN.LOG'
+[app]
+version = '0.1.1'
+name = "testapp"
 
-[logs]
-contributions = 'docs/contrib.log'
+[settings]
+lang = "de"
+
+[locs.registries]
+address = 'docs/ADRESSEN.csv'
+route = 'docs/ROUTEN.log'
+user = 'docs/NUTZER.csv'
+items = 'docs/OBJEKTE'
+
