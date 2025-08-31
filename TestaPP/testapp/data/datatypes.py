@@ -8,129 +8,15 @@ from rich import print
 from string import ascii_uppercase
 from typing import Any, Iterable, Iterator, Union, Literal, LiteralString, Pattern, NewType
 
+from testapp.lib.datatypes import Letter
+
 CountryCode = NewType("CountryCode", str)
 PathStr = Union[str, pathlib.Path, os.PathLike]
-
-class Letter(str):
-    """Letter ensures string of length 1. Use 'case' slot for checking upper/lower case letter. 'self.upper()' and 'self.lower()' methods will create new Letter instance, if not in correct case.
-    """
-    __slots__ = ("case", "body")
-
-    def __new__(cls, token) -> "Letter":
-        if len(str(token)) != 1:
-            print("""[red bold]:: FEHLER[/red bold]
-    [red]-> Syntaxfehler[/red]
-    -> *class* [cyan]Letter[blue]([/blue]str[blue])[/blue][/cyan] expects *single* character.""")
-            raise SyntaxError()
-        inst = super().__new__(cls, str(token))
-        inst.body = str(token)
-
-        if token.upper() == token:
-            inst.case = "upper"
-        else:
-            inst.case = "lower"
-        return inst
-
-    @classmethod
-    def up(cls, other: "Letter|str") -> "Letter|str":
-        if isinstance(other, Letter):
-            if other.isupper():
-                return other
-            return cls(str(other).upper())
-        if len(other) > 1:
-            return other.upper()
-        return cls(other.upper())
-
-    @classmethod
-    def low(cls, other: "Letter|str") -> "Letter|str":
-        if isinstance(other, Letter):
-            if other.islower():
-                return other
-            return cls(str(other).lower())
-        if len(other) > 1:
-            return other.lower()
-        return cls(other.lower())
-
-    def upper(self) -> "Letter":
-        if not self.isupper():
-            return Letter(str(self).upper())
-        return self
-
-    def lower(self) -> "Letter":
-        if not self.islower():
-            return Letter(str(self).lower())
-        return self
-
-    def __str__(self) -> str:
-        return self.body
-
-    def __eq__(self, other) -> bool:
-        result = False
-        if isinstance(other, str):
-            if len(other) == 1:
-                other = Letter(other)
-        if isinstance(other, Letter):
-            if other.body == self.body and other.case == self.case:
-                result = True
-        return result
-
-    def __gt__(self, other) -> bool:
-        if not isinstance(other, (str)):
-            return False
-        if not len(other) == 1:
-            return False
-        o = Letter(other)
-        if self.case == o.case:
-            return ord(self.body) > ord(o.body)
-        elif self.case == 'upper':
-            return True
-        else:
-            return False
-
-    def __mul__(self, other) -> "str":
-        if not isinstance(other, int):
-            raise TypeError("Expected integer")
-        result = []
-        for i in range(other):
-            result.append(Letter(self.body))
-        return "".join(result)
-
-    def isupper(self) -> bool:
-        return self.case == "upper"
-
-    def islower(self) -> bool:
-        return self.case == 'lower'
-
-    def __add__(self, other) -> "Letter|str":
-        if isinstance(other, str):
-            return str(self) + other
-        elif isinstance(other, int):
-            var = chr(ord(self) + 1)
-            l = Letter(var)
-            if l == None:
-                raise RuntimeError()
-            return l
-        raise TypeError()
-
-    def __subtract__(self, other) -> "Letter":
-        if not isinstance(other, int):
-            raise TypeError()
-        l = Letter(chr(ord(self) + 1))
-        if not l:
-            raise RuntimeError()
-        return l
-
-    @classmethod
-    def safe_convert(cls, token) -> "Letter|None":
-        try:
-            return cls.__new__(cls, token)
-        except:
-            return None
 
 class UserData:
     def __init__(
         self,
-        letter: str|Letter,
+        letter: Letter,
         status: Literal['besetzt', 'reserviert', 'frei'] = 'frei',
         name: str | Literal['ANON'] | None = None,
         user_status: Literal['user', 'admin'] | None = None,

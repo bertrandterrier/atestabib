@@ -4,7 +4,7 @@ from typing import Optional
 from typing_extensions import Annotated
 
 import testapp as ta
-from testapp import g_admin, g_router
+from testapp.data import g_admin, g_router
 from testapp.data.datatypes import TestaBibID
 
 app = typer.Typer()
@@ -14,9 +14,9 @@ def scan_key(key: str):
     success: bool = rslt[0]
 
     if not success:
-        print("[magenta bold]:: NEGATIV[/magenta bold]")
-        print(f"[magenta] ->[/magenta] [green]{key}[/green]")
-        print(f"[magenta] -> Keine valide Signatur der Alfred Testa Bibliothek.[/magenta]")
+        print(ta.ui.rstyle(":: GESCHEITERT", 'b', 'err'))
+        print(f"  -> {ta.ui.rstyle(key, '')}")
+        print(ta.ui.rstyle(f"  -> Keine valide Signatur der Alfred Testa Bibliothek.[/magenta]"))
         print("\n> [bold]EBNF[/bold] Form: [yellow]4*Ziffer, LetterGross, 3*Ziffer, [[ \"-\", Ziffer { Ziffer|LetterKlein } ]][/yellow]")
         print("> [bold]REGEX[/bold] Form: [yellow]\\d{4}[[A-Z]]\\d{3}-{0,1}[[0-9]]*[[0-9a-z]]*")
     elif not isinstance(rslt[1], TestaBibID):
@@ -33,6 +33,10 @@ def scan_key(key: str):
         print()
 
 def scan_user(token: str):
+    result = g_admin.get(token)
+    if result == None:
+        print()
+
     return
 
 _auto_scan_opts = [ 'item', 'route', 'user' ]
