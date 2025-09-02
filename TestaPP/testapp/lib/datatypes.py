@@ -1,15 +1,7 @@
-import os
-import pathlib
 from string import ascii_lowercase, ascii_uppercase
-from typing import NewType, Protocol, runtime_checkable, Union, Literal
+from typing import Literal
 
-@runtime_checkable
-class Stringable(Protocol):
-    def __str__(self) -> str:
-        ...
-
-StrArgs = NewType("StrArgs", tuple[Stringable,...])
-PathStr = Union[str, pathlib.Path, os.PathLike]
+from testapp.lib.hinttypes import Stringable
 
 
 class Letter(str):
