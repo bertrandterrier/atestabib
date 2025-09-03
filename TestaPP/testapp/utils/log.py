@@ -3,7 +3,7 @@ import logging
 from logging import Logger
 from pathlib import Path
 
-from testapp.lib.datatypes import PathStr
+from testapp.models.datatypes import PathStr
 
 def mklogger(
     name: str,

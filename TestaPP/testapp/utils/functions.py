@@ -1,4 +1,4 @@
-from typing import Any, Callable, Iterable, Literal
+from typing import Any, Iterable, Literal
 
 def issubset(subset: Iterable, superset: Iterable, empty_set_fail: bool = False) -> bool:
     """Checks if x is subset of y. True if all elements in x are elements of y."""
@@ -15,7 +15,7 @@ def issubset(subset: Iterable, superset: Iterable, empty_set_fail: bool = False)
 def filter(
     src: Iterable,
     filter: Iterable,
-    mode: Literal['pos', 'neg'] = 'pos'
+    mode: Literal['pos', 'neg', '+', '-'] = 'pos'
 ) -> list:
     match mode:
         case '+'|'pos'|'positive':
@@ -64,7 +64,3 @@ def safetype(
     else:
         result = _type(check)
     return result
-
-
-
-

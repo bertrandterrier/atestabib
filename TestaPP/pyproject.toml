@@ -1,11 +1,13 @@
 [project]
 name = "testapp"
+author = ["bertrandterrier <mail@immanuelstemmert.de>"]
 version = "0.1.0"
 dependencies = [
 	"typer[all]>=0.16.1",
 	"rich>=14.1.0",
-	"toml>=0.10.1"
+	"toml>=0.10.1",
+	"pandas>=2.3.2",
 ]
 
 [project.scripts]
-testabib = "__main__:app"
+atbib = "cli:app"
