@@ -3,50 +3,30 @@ from typing import Optional
 from typing_extensions import Annotated
 
 from testapp import g_router
-from testapp.lib.utils import 
+import testapp as ta
 
 app = typer.Typer()
 
 OPTS_AUTOCOMPLETE = {
-    'scan': [ 'Signature', 'Route', 'Nutzer', 'Adresse' ]
+    'scan': [ 'signature', 'index', 'id', 'name', 'address', '*' ],
+    'show': [ 'locs', 'locations', 'items', 'routes', 'demands', '*' ],
 }
-def _auto_scan_arg(ctx: typer.Context, args: list[str], incomplete: str):
+
+def _autocomplete(ctx: typer.Context, args: list[str], incomplete: str):
     if len(args) < 1:
         return []
-    key = 
-        return list(g_router)
 
-@app.command("scan")
-def scan(
-    token: Annotated[str, typer.Argument(
-        help = "Type token.",
-        autocompletion = lambda: [],
-    )],
-    args: Annotated[Optional[list[str]], typer.Argument(
-        help = "[yellow]Token Argument[/yellow]. Argument[italic]typ[/italic] abhängig vom [yellow]Scan-Token [italic]⟨token⟩[/italic][/yellow].",
-        autocompletion = _auto_scan_arg,
+@app.command("inspect")
+def inspect(
+    signature: Annotated[Optional[str], typer.Argument(
+        help = """The item signature. Format: \"0000A000\" or \"0000A000-1a23b\". If you are not sure about signature, use '--search' flag. If signature is not known, use 'search' command with '--inspect' flag. If signature stays empty, at least one segment has to be provided.""",
     )] = None,
+    search: Annotated[Optional[bool], typer.Option(
+        '-s', '--search',
+        help = "Searches for similar or partly correct signatures. for more complex search use 'search' command."
+    )] = False,
 ):
-    token = ta.fn.de_en(token)
-
-    if not args:
-        raise RuntimeError("Mode help not yet implemented.")
-        # TODO: MODE HELP
-
-    if isinstance(args, str):
-        args = [args]
-
-    match token:
-        case 'item':
-            for arg in args:
-                scan_key(arg)
-        case 'user':
-            for arg in args:
-                #scan_user(arg)
-                continue
-        case 'route':
-            pass
-            # TODO Route scan
+    pass
 
 @app.command("test")
 def test(arg: Annotated[Optional[str], typer.Argument()] = None):

@@ -1,7 +1,16 @@
+from datetime import datetime
+import os
+import pathlib
 from string import ascii_lowercase, ascii_uppercase
-from typing import Literal
+from typing import Literal, Protocol, runtime_checkable, Union
 
-from testapp.lib.hinttypes import Stringable
+TimeStamp = Union[str, datetime, tuple[int, ...], dict[str, int]]
+PathStr = Union[os.PathLike, pathlib.Path, str]
+
+@runtime_checkable
+class Stringable(Protocol):
+    def __str__(self) -> str:
+        ...
 
 class Letter(str):
     """Letter ensures string of length 1. Use 'case' slot for checking upper/lower 

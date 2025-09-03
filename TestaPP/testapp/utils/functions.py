@@ -1,3 +1,5 @@
+from datetime import datetime
+from dateutil import parser as dtparser
 from typing import Any, Iterable, Literal
 
 def issubset(subset: Iterable, superset: Iterable, empty_set_fail: bool = False) -> bool:
@@ -23,44 +25,70 @@ def filter(
         case '-'|'neg'|'negative':
             return [e for e in src if e not in filter]
 
-def safetype(
-    _type: type,
-    arg,
-    filter: bool = False,
-    mod: Literal['to_type', 'to_none']|type = 'to_type',
-    err: type[Exception]|None = None
-) -> Any:
-    """Ensures to return a certain type be returned.
+EN_DE: dict[str, str] = {
+    'user': 'user',
+    'member': 'Nutzer',
+    'free': 'frei',
+    'occupied': 'besetzt',
+    'admin': 'Admin',
+    'reserved': 'reserviert',
+    'route': 'Route',
+    'signature': 'Signatur',
+    'id': 'Kennnummer',
+    'item': 'Objekt',
+    'library': 'Bibliothek',
+    'lib': 'Bib',
+    'bookcase': 'Bücherschrank',
+    'address': 'Adresse',
+    'location': 'Ort',
+}
+DE_EN: dict[str, str] = {}
 
-    _type: type
-        The type or class.
-    arg:
-        The argument.
-    filter: bool
-        If arg list|tuple will only use first element.
-        Defaults to False.
-    mod: "to_type" | "to_none" | type
-        If type not found will modify argument.
-            "to_type": Calls an empty instance of _type.
-            "to_none": Returns None.
-        Any type provided will return an empty instance of that type.
-    err: Exception | None 
-        If an exception is provided, the safetype will raise it, if type not found.
-    """
-    if isinstance(arg, (list, tuple)) and filter:
-        check = arg[0]
-    else:
-        check = arg
+for k, v in EN_DE.items():
+    DE_EN[v] = k
 
-    if isinstance(check, _type):
-        return check
+def transl(
+    arg: str,
+    src_lang: Literal['de', 'en', 'german', 'english']|None = None,
+    default = None,
+) -> str | Any:
+    result = None
+    if src_lang:
+        if src_lang.lower() in ['de', 'german']: 
+            return DE_EN.get(arg, default)
+        elif src_lang.lower().startswith('en'):
+            return EN_DE.get(arg, default)
+        elif src_lang:
+            raise NameError(f"Invalid name \"{src_lang}\" for source language.")
 
-    if isinstance(err, Exception):
-        raise err
-    elif mod == 'to_none':
-        result = None
-    elif isinstance(mod, type):
-        result = mod(check)
-    else:
-        result = _type(check)
-    return result
+    for src, mods in [
+        (EN_DE, [str.lower]),
+        (DE_EN, [str.title, str.lower])
+    ]:
+        for func in mods:
+            result = src.get(func(arg))
+            if result:
+                return result
+    return default
+
+def de_en(word: str, default = None) -> str | Any:
+    return transl(word, 'de', default)
+
+def en_de(word: str, default = None) -> str | Any:
+    return transl(word, 'en', default)
+
+def timestamp(
+    stamp: datetime|str|tuple[int, ...]|dict,
+) -> datetime|None:
+    if isinstance(stamp, datetime):
+        return stamp
+    if isinstance(stamp, str):
+        return dtparser.parse(stamp)
+    if isinstance(stamp, tuple):
+        var = {}
+        for i, key in enumerate(['year', 'month', 'day', 'hour', 'minute', 'second']):
+            if i >= len(stamp):
+                break
+            var[key] = str(stamp[i])
+        return datetime(**var)
+    return datetime(**stamp)

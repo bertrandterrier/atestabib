@@ -1,84 +1,45 @@
 from dataclasses import dataclass
+from datetime import datetime as dt
 import re
 from typing import Iterator, Literal, LiteralString, Pattern
+
+from testapp.lib.datatypes import TimeStamp, Letter, PathStr
+
 
 @dataclass
 class AddrData:
     country: str
     city: str
-    street: str
+    postcode: int|str|None = None
     region: str|None = None
-    postcode: int = -1
+    street: str|tuple[str, int]|None = None
+
+@dataclass
+class MapData:
+    _type: Literal['text', 'img', 'link', 'file']
+    source: str|bytes|PathStr
+    label: str|None = None
+    outdated: bool = False
 
 class BookCase:
     def __init__(
         self,
-        num: int|float|str|tuple[int|str, int],
-        loc0: AddrData|dict|tuple[float, float],
-        loc1: AddrData|dict|tuple[float, float]|None = None,
+        active: bool,
+        *locs: MapData,
+        discovery: Literal['new']|TimeStamp = 'new',
+        visits: list[TimeStamp] = [],
+        comments: list[tuple[Literal['*']|TimeStamp, str]],
+        **states,
     ):
-        self._num: int = -1
-        self._num_suf: str|None = None
+        self._active: bool = active
         self._addr: AddrData|None = None
-        self._geo: tuple[float, float]|None = None
+        self._gps: tuple[float, float]|None = None
+        self._maps: list[MapData] = []
 
-        if isinstance(num, int):
-            self._num = num
-        elif isinstance(num, float):
-            parts = str(num).split(".", 1)
-            self._num = int(parts[0])
-            self._num_suf = parts[1]
-        elif isinstance(num, str):
-            parts = re.match("([0-9]+)([a-z0-9]*)", num)
-            if not parts:
-                raise SyntaxError(f"Invalid number: {num}")
-            self._num = int(parts[0])
-            self._num_suf = parts[1]
-        elif isinstance(num, tuple):
-            self._num = int(num[0])
-            self._num_suf = str(num[1])
+        self._states: dict = { k: v for k, v in states.items()}
 
 
-        for loc in [loc0, loc1]:
-            if isinstance(loc, AddrData):
-                self._addr = loc
-            elif isinstance(loc, tuple):
-                self._geo = loc
-            elif isinstance(loc, dict):
-                if 'country' in loc.keys():
-                    self._addr = AddrData(**loc)
-                elif 'lat' in loc.keys():
-                    self._geo = (loc['lat'], loc['long'])
-                elif 'latitude' in loc.keys():
-                    self._geo = (loc['latitude'], loc['longitude'])
-                else:
-                    raise KeyError("Expected address data dictionary, or dictionary with long+lat as keys.")
-        @property
-        def addresse(self) -> AddrData|None:
-            return self._addr
 
-        @property
-        def gps(self) -> tuple[float, float]|None:
-            return self._geo
-
-        @property
-        def latitude(self) -> float|None:
-            if self.gps:
-                return self.gps[0]
-        @property
-        def longitude(self) -> float|None:
-            if not self.gps:
-                return
-            return self.gps[1]
-
-        def loc(self, prec: Literal['gps', 'address'] = 'gps') -> tuple[AddrData|tuple[float|float]]:
-            if prec == 'gps' and self.gps:
-                return self.gps
-            elif prec == 'address':
-                return self.address
-            elif self.address:
-                return self.address
-            return self.gps
 class Route:
     def __init__(
         self,
