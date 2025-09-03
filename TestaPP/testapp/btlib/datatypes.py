@@ -3,7 +3,6 @@ from typing import Literal
 
 from testapp.lib.hinttypes import Stringable
 
-
 class Letter(str):
     """Letter ensures string of length 1. Use 'case' slot for checking upper/lower 
     case letter. 'self.upper()' and 'self.lower()' methods will create new Letter 

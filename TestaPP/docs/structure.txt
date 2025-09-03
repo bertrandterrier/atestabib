@@ -1,0 +1,15 @@
+core/   
+    ..Core app functionalities.
+    - scanner.py :: Token scanner.
+data/   
+    ..Local/remote storage for A. Testa library contingent.
+    | cache.py -- Local atestabib contingent storage.
+    | server.py -- Remote atestabib contingent storage.
+lib/ ..Helper functions.
+models/ 
+    ..DTOs, TestaPP datatypes, etc.
+    - bibtypes.py
+    - union_types.py
+config.py -- Runtime configuration
+cli.py -- Command Line Interface
+gui.py -- Graphical User Interface

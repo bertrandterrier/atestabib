@@ -4,7 +4,7 @@ from typing_extensions import Annotated
 
 import testapp as ta
 from testapp.data import g_admin, g_router
-from testapp.data.datatypes import TestaBibID
+from testapp.data.items import TestaBibID
 from testapp.lib import FormatPrinter as print
 
 app = typer.Typer()

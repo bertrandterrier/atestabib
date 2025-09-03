@@ -1,3 +1,4 @@
+# TODO Has to be moved to more fitting place; like lib/
 from typing import Any, Literal
 
 SYNDICT: dict[str, list[str]] = {

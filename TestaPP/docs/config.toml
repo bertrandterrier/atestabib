@@ -5,9 +5,11 @@ name = "testapp"
 [settings]
 lang = "de"
 
+[locs]
+logs = '$XDG_CACHE_HOME/testapp/'
+
 [locs.registries]
 address = 'docs/ADRESSEN.csv'
 route = 'docs/ROUTEN.log'
 user = 'docs/NUTZER.csv'
 items = 'docs/OBJEKTE'
-
